@@ -472,6 +472,48 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  function getActivityShareData(name) {
+    const activityUrl = new URL(window.location.origin + window.location.pathname);
+    activityUrl.searchParams.set("activity", name);
+
+    return {
+      shareText: `Check out ${name} at Mergington High School!`,
+      shareUrl: activityUrl.toString(),
+    };
+  }
+
+  async function handleShareClick(activityName, platform) {
+    const { shareText, shareUrl } = getActivityShareData(activityName);
+
+    if (platform === "copy") {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        showMessage("Activity link copied to clipboard!", "success");
+      } catch (error) {
+        console.error("Error copying link:", error);
+        showMessage("Unable to copy link. Please try again.", "error");
+      }
+      return;
+    }
+
+    const shareTargets = {
+      email: `mailto:?subject=${encodeURIComponent(
+        "Mergington activity recommendation"
+      )}&body=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`,
+      whatsapp: `https://wa.me/?text=${encodeURIComponent(
+        `${shareText} ${shareUrl}`
+      )}`,
+      x: `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+        shareText
+      )}&url=${encodeURIComponent(shareUrl)}`,
+    };
+
+    const shareTarget = shareTargets[platform];
+    if (shareTarget) {
+      window.open(shareTarget, "_blank", "noopener,noreferrer");
+    }
+  }
+
   // Function to render a single activity card
   function renderActivityCard(name, details) {
     const activityCard = document.createElement("div");
@@ -569,6 +611,21 @@ document.addEventListener("DOMContentLoaded", () => {
         `
         }
       </div>
+      <div class="share-actions">
+        <span class="share-label">Share:</span>
+        <button class="share-button" data-platform="copy" aria-label="Copy activity link">
+          Copy Link
+        </button>
+        <button class="share-button" data-platform="email" aria-label="Share by email">
+          Email
+        </button>
+        <button class="share-button" data-platform="whatsapp" aria-label="Share on WhatsApp">
+          WhatsApp
+        </button>
+        <button class="share-button" data-platform="x" aria-label="Share on X">
+          X
+        </button>
+      </div>
     `;
 
     // Add click handlers for delete buttons
@@ -586,6 +643,13 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
     }
+
+    const shareButtons = activityCard.querySelectorAll(".share-button");
+    shareButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        handleShareClick(name, button.dataset.platform);
+      });
+    });
 
     activitiesList.appendChild(activityCard);
   }
